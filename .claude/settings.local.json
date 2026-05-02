@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(perl -v)",
-      "Bash(perl -i -0pe 's|\\(<div class=\"mobile-cta\">.*?<a class=\"btn btn-primary\"[^>]*>\\)Send Enquiry <span class=\"arrow\">→</span>|$1<span class=\"full\">Send Enquiry</span><span class=\"short\">Enquire</span> <span class=\"arrow\">→</span>|s' book.html)"
-    ]
-  }
-}
