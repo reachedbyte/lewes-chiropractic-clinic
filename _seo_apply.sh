@@ -82,45 +82,62 @@ apply_seo() {
   local url="$BASE/$slug"
   if [ "$slug" = "index.html" ]; then url="$BASE/"; fi
 
-  # 1) Replace <title>
-  perl -i -pe "s|<title>[^<]*</title>|<title>${title}</title>|" "$slug"
+  # Export variables for Perl to access
+  export SEO_TITLE="$title" SEO_DESC="$desc" SEO_KEYWORDS="$keywords" SEO_URL="$url" SEO_OG="$OG"
 
-  # 2) Replace <meta name="description">
-  perl -i -pe "s|<meta name=\"description\" content=\"[^\"]*\">|<meta name=\"description\" content=\"${desc}\">|" "$slug"
+  # Use Perl with environment variables
+  perl -i -e '
+    use strict;
+    my $title = $ENV{SEO_TITLE};
+    my $desc = $ENV{SEO_DESC};
+    my $keywords = $ENV{SEO_KEYWORDS};
+    my $url = $ENV{SEO_URL};
+    my $og = $ENV{SEO_OG};
 
-  # 3) Inject SEO bundle (canonical, keywords, robots, OG, Twitter, JSON-LD) right after the description meta
-  # First strip any prior block to keep idempotent
-  perl -i -0pe 's|<!-- SEO:START -->.*?<!-- SEO:END -->\n||s' "$slug"
+    local $/;
+    my $content = <>;
 
-  local seo_block
-  seo_block="<!-- SEO:START -->
-<link rel=\"canonical\" href=\"${url}\">
-<meta name=\"keywords\" content=\"${keywords}\">
-<meta name=\"author\" content=\"Lewes Chiropractic Clinic\">
-<meta name=\"robots\" content=\"index, follow, max-image-preview:large, max-snippet:-1\">
-<meta name=\"geo.region\" content=\"GB-ESX\">
-<meta name=\"geo.placename\" content=\"Lewes\">
-<meta name=\"geo.position\" content=\"50.873;0.010\">
-<meta name=\"ICBM\" content=\"50.873, 0.010\">
-<meta property=\"og:type\" content=\"website\">
-<meta property=\"og:site_name\" content=\"Lewes Chiropractic Clinic\">
-<meta property=\"og:locale\" content=\"en_GB\">
-<meta property=\"og:url\" content=\"${url}\">
-<meta property=\"og:title\" content=\"${title}\">
-<meta property=\"og:description\" content=\"${desc}\">
-<meta property=\"og:image\" content=\"${OG}\">
-<meta property=\"og:image:width\" content=\"1200\">
-<meta property=\"og:image:height\" content=\"630\">
-<meta property=\"og:image:alt\" content=\"Lewes Chiropractic Clinic — established 1990\">
-<meta name=\"twitter:card\" content=\"summary_large_image\">
-<meta name=\"twitter:title\" content=\"${title}\">
-<meta name=\"twitter:description\" content=\"${desc}\">
-<meta name=\"twitter:image\" content=\"${OG}\">
-<meta name=\"format-detection\" content=\"telephone=yes\">
-<!-- SEO:END -->"
+    # 1) Replace <title>
+    $content =~ s|<title>[^<]*</title>|<title>$title</title>|;
 
-  # Insert right after the description meta
-  perl -i -0pe "s|(<meta name=\"description\" content=\"[^\"]*\">)|\$1\n${seo_block}|" "$slug"
+    # 2) Replace <meta name="description">
+    $content =~ s|<meta name="description" content="[^"]*">|<meta name="description" content="$desc">|;
+
+    # 3) Strip old SEO block if present (idempotent)
+    $content =~ s|<!-- SEO:START -->.*?<!-- SEO:END -->\n||s;
+
+    # 4) Build and inject new SEO block
+    my $seo_block = qq{<!-- SEO:START -->
+<link rel="canonical" href="$url">
+<meta name="keywords" content="$keywords">
+<meta name="author" content="Lewes Chiropractic Clinic">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="geo.region" content="GB-ESX">
+<meta name="geo.placename" content="Lewes">
+<meta name="geo.position" content="50.873;0.010">
+<meta name="ICBM" content="50.873, 0.010">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lewes Chiropractic Clinic">
+<meta property="og:locale" content="en_GB">
+<meta property="og:url" content="$url">
+<meta property="og:title" content="$title">
+<meta property="og:description" content="$desc">
+<meta property="og:image" content="$og">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Lewes Chiropractic Clinic — established 1990">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="$title">
+<meta name="twitter:description" content="$desc">
+<meta name="twitter:image" content="$og">
+<meta name="format-detection" content="telephone=yes">
+<!-- SEO:END -->};
+
+    # Insert after description meta
+    $content =~ s|(<meta name="description" content="[^"]*">)|$1\n$seo_block|;
+
+    print $content;
+  ' "$slug"
 }
 
 # Apply per-page metadata
