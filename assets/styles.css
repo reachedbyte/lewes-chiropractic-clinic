@@ -72,6 +72,21 @@ body{
 }
 img,svg,iframe,video{max-width:100%}
 *{min-width:0}
+
+/* Long strings (emails, URLs) must always break to fit their container */
+a[href^="mailto:"],a[href^="tel:"],
+.info-row .val,
+.feature-row-item p,
+.footer ul li,
+.location-info,
+.field input,.field textarea{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  hyphens:auto;
+}
+@media(max-width:559px){
+  a[href^="mailto:"]{font-size:.92em}
+}
 img,svg,video{display:block;max-width:100%;height:auto}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
